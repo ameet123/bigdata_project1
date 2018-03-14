@@ -5,18 +5,16 @@ import org.apache.spark.mllib.linalg.Vectors
 import org.apache.spark.sql.{Row, SparkSession}
 import org.apache.spark.{SparkConf, SparkContext}
 
-val masterUrl = "master[*]"
+val masterUrl = "local[*]"
 val conf = new SparkConf().setAppName("bigdata_proj").setMaster(masterUrl).set("spark.ui.port", "34050")
 val sc = new SparkContext(conf)
 val spark = SparkSession.builder().config(conf).getOrCreate()
 
-import spark.implicits._
-
-val numTopics: Int = 100
+val numTopics: Int = 5
 val maxIterations: Int = 100
 val vocabSize: Int = 10000
-val notes_path = "/user/af55267/project/small_cleansed_noteevents.csv"
-val stopwords_path = "/user/af55267/project/stopwords"
+val notes_path = "/home/af55267/script/learning/w2/proj/data/small_cleansed_noteevents.csv"
+val stopwords_path = "/home/af55267/script/learning/w2/proj/data/stopwords"
 /**
   * Data Preprocessing:
   * to save data removing newline
@@ -31,38 +29,26 @@ val stopwords_path = "/user/af55267/project/stopwords"
   * hdfs dfs -put <> /path/in/hdfs
   **/
 // Load the raw articles, assign docIDs, and convert to DataFrame
-val rawTextRDD = spark.read.format("csv").option("header", "true").load(notes_path).
-  select("c3").rdd
+val rawTextDF = spark.read.format("csv").option("header", "false").load(notes_path).toDF("rowid", "subjid", "text").
+  select("rowid", "text")
 
-val docDF = rawTextRDD.zipWithIndex.toDF("text", "docId")
 
 // Split each document into words
-val tokens = new RegexTokenizer()
-  .setGaps(false)
-  .setPattern("\\p{L}+")
-  .setInputCol("text")
-  .setOutputCol("words")
-  .transform(docDF)
+val tokens = new RegexTokenizer().setGaps(false).setPattern("\\p{L}+").setInputCol("text").setOutputCol("words").
+  setMinTokenLength(4).transform(rawTextDF)
 
 // Filter out stopwords
 val stopwords: Array[String] = spark.read.format("csv").load(stopwords_path).rdd.
   map(a => a.getString(0)).collect()
-val filteredTokens = new StopWordsRemover()
-  .setStopWords(stopwords)
-  .setCaseSensitive(false)
-  .setInputCol("words")
-  .setOutputCol("filtered")
-  .transform(tokens)
+val filteredTokens = new StopWordsRemover().setStopWords(stopwords).setCaseSensitive(false).setInputCol("words").
+  setOutputCol("filtered").transform(tokens)
 
 // Limit to top `vocabSize` most common words and convert to word count vector features
-val cvModel = new CountVectorizer()
-  .setInputCol("filtered")
-  .setOutputCol("features")
-  .setVocabSize(vocabSize)
-  .fit(filteredTokens)
-val countVectors = cvModel.transform(filteredTokens)
-  .select("docId", "features").rdd
-  .map {
+val cvModel = new CountVectorizer().setInputCol("filtered").setOutputCol("features").setVocabSize(vocabSize).
+  fit(filteredTokens)
+val countVectors = cvModel.transform(filteredTokens).
+  select("rowid", "features").rdd.
+  map {
     case Row(docId: String, feature: MLVector) => (docId.toLong, Vectors.fromML(feature))
   }.cache()
 
@@ -73,16 +59,12 @@ val mbf = {
   val corpusSize = countVectors.count()
   2.0 / maxIterations + 1.0 / corpusSize
 }
-val lda = new LDA()
-  .setOptimizer(new OnlineLDAOptimizer().setMiniBatchFraction(math.min(1.0, mbf)))
-  .setK(numTopics)
-  .setMaxIterations(2)
-  .setDocConcentration(-1) // use default symmetric document-topic prior
-  .setTopicConcentration(-1) // use default symmetric topic-word prior
+val lda = new LDA().setOptimizer(new OnlineLDAOptimizer().setMiniBatchFraction(math.min(1.0, mbf))).setK(numTopics).
+  setMaxIterations(2).setDocConcentration(-1).setTopicConcentration(-1)
 
-val startTime = System.nanoTime()
+val startTime = System.currentTimeMillis()
 val ldaModel = lda.run(countVectors)
-val elapsed = (System.nanoTime() - startTime) / 1e9
+val elapsed = (System.currentTimeMillis() - startTime) / 1000
 
 /**
   * Print results.
@@ -93,7 +75,7 @@ println(s"Training time (sec)\t$elapsed")
 println(s"==========")
 
 // Print the topics, showing the top-weighted terms for each topic.
-val topicIndices = ldaModel.describeTopics(maxTermsPerTopic = 10)
+val topicIndices = ldaModel.describeTopics(maxTermsPerTopic = 50)
 val vocabArray = cvModel.vocabulary
 val topics = topicIndices.map { case (terms, termWeights) =>
   terms.map(vocabArray(_)).zip(termWeights)
