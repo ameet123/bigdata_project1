@@ -10,7 +10,7 @@ val conf = new SparkConf().setAppName("bigdata_proj").setMaster(masterUrl).set("
 val sc = new SparkContext(conf)
 val spark = SparkSession.builder().config(conf).getOrCreate()
 
-val numTopics: Int = 5
+val numTopics: Int = 3
 val maxIterations: Int = 10
 val vocabSize: Int = 10000
 val maxTermsPerTopic = 10
