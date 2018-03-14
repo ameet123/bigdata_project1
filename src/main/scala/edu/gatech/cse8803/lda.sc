@@ -11,8 +11,10 @@ val sc = new SparkContext(conf)
 val spark = SparkSession.builder().config(conf).getOrCreate()
 
 val numTopics: Int = 5
-val maxIterations: Int = 100
+val maxIterations: Int = 10
 val vocabSize: Int = 10000
+val maxTermsPerTopic = 10
+val minWordLen = 4
 val notes_path = "/home/af55267/script/learning/w2/proj/data/small_cleansed_noteevents.csv"
 val stopwords_path = "/home/af55267/script/learning/w2/proj/data/stopwords"
 /**
@@ -35,7 +37,7 @@ val rawTextDF = spark.read.format("csv").option("header", "false").load(notes_pa
 
 // Split each document into words
 val tokens = new RegexTokenizer().setGaps(false).setPattern("\\p{L}+").setInputCol("text").setOutputCol("words").
-  setMinTokenLength(4).transform(rawTextDF)
+  setMinTokenLength(minWordLen).transform(rawTextDF)
 
 // Filter out stopwords
 val stopwords: Array[String] = spark.read.format("csv").load(stopwords_path).rdd.
@@ -60,7 +62,7 @@ val mbf = {
   2.0 / maxIterations + 1.0 / corpusSize
 }
 val lda = new LDA().setOptimizer(new OnlineLDAOptimizer().setMiniBatchFraction(math.min(1.0, mbf))).setK(numTopics).
-  setMaxIterations(2).setDocConcentration(-1).setTopicConcentration(-1)
+  setMaxIterations(maxIterations).setDocConcentration(-1).setTopicConcentration(-1)
 
 val startTime = System.currentTimeMillis()
 val ldaModel = lda.run(countVectors)
@@ -75,7 +77,7 @@ println(s"Training time (sec)\t$elapsed")
 println(s"==========")
 
 // Print the topics, showing the top-weighted terms for each topic.
-val topicIndices = ldaModel.describeTopics(maxTermsPerTopic = 50)
+val topicIndices = ldaModel.describeTopics(maxTermsPerTopic = maxTermsPerTopic)
 val vocabArray = cvModel.vocabulary
 val topics = topicIndices.map { case (terms, termWeights) =>
   terms.map(vocabArray(_)).zip(termWeights)
