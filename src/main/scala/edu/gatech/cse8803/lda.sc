@@ -4,6 +4,11 @@ import org.apache.spark.mllib.clustering.{LDA, OnlineLDAOptimizer}
 import org.apache.spark.mllib.linalg.Vectors
 import org.apache.spark.sql.{Row, SparkSession}
 import org.apache.spark.{SparkConf, SparkContext}
+import org.apache.log4j.Logger
+import org.apache.log4j.Level
+
+Logger.getLogger("org").setLevel(Level.WARN)
+Logger.getLogger("akka").setLevel(Level.WARN)
 
 val masterUrl = "local[*]"
 val conf = new SparkConf().setAppName("bigdata_proj").setMaster(masterUrl).set("spark.ui.port", "34050")
@@ -13,7 +18,7 @@ val spark = SparkSession.builder().config(conf).getOrCreate()
 val numTopics: Int = 3
 val maxIterations: Int = 10
 val vocabSize: Int = 10000
-val maxTermsPerTopic = 10
+val maxTermsPerTopic = 5
 val minWordLen = 4
 val notes_path = "/home/af55267/script/learning/w2/proj/data/small_cleansed_noteevents.csv"
 val stopwords_path = "/home/af55267/script/learning/w2/proj/data/stopwords"
