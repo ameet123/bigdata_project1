@@ -8,7 +8,7 @@ VM_OPTIONS="-Dlog4j.properties=./log4j.properties"
 CLASS="edu.gatech.cse8803.LdaProcessing"
 
 usage(){
-  echo -e "Usage: $0 \n\t-s <mode:local/yarn>\n\t-t <numTopics>\n\t-i <maxIterations>\n\t-k <keytab>\n\t-p <principal>"
+  echo -e "Usage: $0 \n\t-s <mode:local/yarn>\n\t-t <numTopics>\n\t-i <maxIterations>\n\t-k <keytab>\n\t-p <principal>\n\t-o <output HDFS dir>"
   exit 2
 }
 null_check(){
