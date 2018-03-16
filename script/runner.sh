@@ -3,7 +3,6 @@
 # For SSL DEBUG add -Djavax.net.debug=all to driver and executor java options.
 SPARK_SUBMIT=/usr/bin/spark2-submit
 APP_JAR=../target/scala-2.10/project_2.10-0.1.jar
-JARS=../lib/copybookInputFormat.jar
 VM_OPTIONS="-Dlog4j.properties=./log4j.properties"
 CLASS="edu.gatech.cse8803.LdaProcessing"
 
@@ -21,7 +20,7 @@ null_check(){
 }
 keytab_check(){
   file=$1
-  if [ ! -s $file ]
+  if [ ! -s ${file} ]
   then
     echo "Invalid keytab:$file"
     exit 4
@@ -44,7 +43,7 @@ while getopts ":s:t:i:o:k:p:d" x; do
             ;;
         i)
             ITERATIONS=${OPTARG}
-            null_check $ITERATIONS
+            null_check ${ITERATIONS}
             ;;
         k)
             KEYTAB=${OPTARG}
@@ -73,14 +72,14 @@ echo -e "Running LDA :\n{\n\tMode=${SPARK_SVR}\n\tPrincipal=${PRINCIPAL}\n\tKeyt
 if [ "$PURGE" == "Y" ]
 then
   echo "Deleting output dir: $OUTPUT_DIR"
-  hdfs dfs -rm -r $OUTPUT_DIR
+  hdfs dfs -rm -r ${OUTPUT_DIR}
 fi
 
 if [ "${SPARK_SVR}" == "local" ]
 then
     echo ">> Running in LOCAL Mode..."
 
-    $SPARK_SUBMIT \
+    ${SPARK_SUBMIT} \
     --master ${SPARK_SVR} \
     --keytab ${KEYTAB} \
     --principal ${PRINCIPAL} \
@@ -88,7 +87,6 @@ then
     --executor-cores 4 \
     --num-executors 2 \
     --driver-memory 1g --executor-memory 1g \
-    --jars ${JARS} \
     --driver-java-options "${VM_OPTIONS}" \
     --conf "spark.executor.extraJavaOptions=${VM_OPTIONS}" \
     --conf spark.network.timeout=10000000 \
@@ -98,7 +96,7 @@ then
 else
     echo ">> Running in Yarn Mode..."
 
-    $SPARK_SUBMIT \
+    ${SPARK_SUBMIT} \
     --queue bdf_yarn \
     --master ${SPARK_SVR} \
     --keytab ${KEYTAB} \
@@ -107,7 +105,6 @@ else
     --executor-cores 4 \
     --num-executors 2 \
     --driver-memory 1g --executor-memory 1g \
-    --jars ${JARS} \
     --driver-java-options "${VM_OPTIONS}" \
     --conf "spark.executor.extraJavaOptions=${VM_OPTIONS}" \
     --conf spark.network.timeout=10000000 \
