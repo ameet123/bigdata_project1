@@ -35,8 +35,9 @@ object LdaProcessing {
     val spark: SparkSession = SparkSession.builder().config(conf).getOrCreate()
 
     // Load the raw articles, assign docIDs, and convert to DataFrame
-    val rawTextDF: DataFrame = spark.read.option("header", "false").option("quote", "\"").option("escape", '"').
+    val rawTextDF: DataFrame = spark.read.option("header", "false").option("quote", "\"").option("escape", "\"").
       option("mode", "DROPMALFORMED").option("delimiter", ",").csv(notes_path).toDF(PATIENT_ID, TEXT_FIELD)
+
 
     // Split each document into words
     val tokens: DataFrame = new RegexTokenizer().setGaps(false).setPattern("\\p{L}+").

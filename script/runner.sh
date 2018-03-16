@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 
 # For SSL DEBUG add -Djavax.net.debug=all to driver and executor java options.
+# Sample invocation
+#  bash runner.sh   -s yarn -t 3 -o /user/af55267/project/lda_out -i 10 \
+#                   -w /user/af55267/project/stopwords1 -k ameet.keytab -p AF55267@DEVAD.WELLPOINT.COM -d
+
 SPARK_SUBMIT=/usr/bin/spark2-submit
 APP_JAR=../target/scala-2.10/project_2.10-0.1.jar
 VM_OPTIONS="-Dlog4j.properties=./log4j.properties"
