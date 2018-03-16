@@ -19,14 +19,13 @@ object LdaProcessing {
   val maxTermsPerTopic = 10
   val minWordLen = 5
   val notes_path = "/user/af55267/project/notes/consolidated_notes.csv"
-  val stopwords_path = "/user/af55267/project/stopwords"
 
   // Field descriptions
-  private val PATIENT_ID = "subject_id"
-  private val TEXT_FIELD = "text"
-  private val TOKENIZED_FIELD = "words"
-  private val FILTERED_FIELD = "filtered"
-  private val FEATURES_FIELD = "features"
+  val PATIENT_ID = "subject_id"
+  val TEXT_FIELD = "text"
+  val TOKENIZED_FIELD = "words"
+  val FILTERED_FIELD = "filtered"
+  val FEATURES_FIELD = "features"
 
   def main(args: Array[String]): Unit = {
     val ldaConf: LdaConf = new ProcessArguments().exec(args)
@@ -36,14 +35,14 @@ object LdaProcessing {
     val spark: SparkSession = SparkSession.builder().config(conf).getOrCreate()
 
     // Load the raw articles, assign docIDs, and convert to DataFrame
-    val rawTextDF: DataFrame = spark.read.format("csv").option("header", "false").load(notes_path).
-      toDF(PATIENT_ID, TEXT_FIELD)
+    val rawTextDF: DataFrame = spark.read.option("header", "false").option("quote", "\"").option("escape", '"').
+      option("mode", "DROPMALFORMED").option("delimiter", ",").csv(notes_path).toDF(PATIENT_ID, TEXT_FIELD)
 
     // Split each document into words
     val tokens: DataFrame = new RegexTokenizer().setGaps(false).setPattern("\\p{L}+").
       setInputCol(TEXT_FIELD).setOutputCol(TOKENIZED_FIELD).setMinTokenLength(minWordLen).transform(rawTextDF)
 
-    val stopwords: Array[String] = spark.read.format("csv").load(stopwords_path).rdd.
+    val stopwords: Array[String] = spark.read.format("csv").load(ldaConf.stopwords).rdd.
       map(a => a.getString(0)).collect()
 
     val filteredTokens: DataFrame = new StopWordsRemover().setStopWords(stopwords).setCaseSensitive(false).
@@ -87,17 +86,17 @@ object LdaProcessing {
     topicString.append(s"${ldaConf.numTopics} topics:\n")
     topics.zipWithIndex.foreach { case (topic, i) =>
       println(s"TOPIC $i")
-      topicString.append(s"TOPIC $i")
+      topicString.append(s"TOPIC $i \n")
       topic.foreach { case (term, weight) =>
         println(s"$term\t$weight")
-        topicString.append(s"$term\t$weight")
+        topicString.append(s"$term\t$weight\n")
       }
       println("=" * 80)
-      topicString.append("=" * 80)
+      topicString.append("=" * 80 + "\n")
     }
 
     LOGGER.info("Saving topics to output:" + ldaConf.output)
-    val outRdd = sc.parallelize(Seq(topicString.toString()))
+    val outRdd = sc.parallelize(Seq(topicString.toString())).repartition(1)
     outRdd.saveAsTextFile(ldaConf.output)
   }
 }

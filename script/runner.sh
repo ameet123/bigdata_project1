@@ -7,7 +7,8 @@ VM_OPTIONS="-Dlog4j.properties=./log4j.properties"
 CLASS="edu.gatech.cse8803.LdaProcessing"
 
 usage(){
-  echo -e "Usage: $0 \n\t-s <mode:local/yarn>\n\t-t <numTopics>\n\t-i <maxIterations>\n\t-k <keytab>\n\t-p <principal>\n\t-o <output HDFS dir>"
+  echo -e "Usage: $0 \n\t-s <mode:local/yarn>\n\t-t <numTopics>\n\t-i <maxIterations>\n\t-k <keytab>\n\t-p
+  <principal>\n\t-o <output HDFS dir>\n\t-w <stopwords>"
   exit 2
 }
 null_check(){
@@ -31,7 +32,7 @@ if [ "$#" -lt 6 ]
 then
   usage
 fi
-while getopts ":s:t:i:o:k:p:d" x; do
+while getopts ":s:t:i:o:k:p:w:d" x; do
     case "${x}" in
         s)
             SPARK_SVR=${OPTARG}
@@ -57,6 +58,10 @@ while getopts ":s:t:i:o:k:p:d" x; do
             OUTPUT_DIR=${OPTARG}
             null_check ${OUTPUT_DIR}
             ;;
+        w)
+            STOPWORDS=${OPTARG}
+            null_check ${STOPWORDS}
+            ;;
         d)
             PURGE="Y"
             ;;
@@ -67,7 +72,7 @@ while getopts ":s:t:i:o:k:p:d" x; do
 done
 shift $((OPTIND-1))
 
-echo -e "Running LDA :\n{\n\tMode=${SPARK_SVR}\n\tPrincipal=${PRINCIPAL}\n\tKeytab=$KEYTAB\n\tTopics=${TOPICS}\n\tIterations=${ITERATIONS}\n\tOutput=${OUTPUT_DIR}\n}"
+echo -e "Running LDA :\n{\n\tMode=${SPARK_SVR}\n\tPrincipal=${PRINCIPAL}\n\tKeytab=$KEYTAB\n\tTopics=${TOPICS}\n\tIterations=${ITERATIONS}\n\tOutput=${OUTPUT_DIR}\n\tStopwords=${STOPWORDS}\n}"
 
 if [ "$PURGE" == "Y" ]
 then
@@ -92,7 +97,7 @@ then
     --conf spark.network.timeout=10000000 \
     --conf spark.ui.port=24100 \
     --class ${CLASS} \
-    ${APP_JAR} ${TOPICS} ${ITERATIONS} ${OUTPUT_DIR}
+    ${APP_JAR} ${TOPICS} ${ITERATIONS} ${OUTPUT_DIR} $STOPWORDS
 else
     echo ">> Running in Yarn Mode..."
 
@@ -110,5 +115,5 @@ else
     --conf spark.network.timeout=10000000 \
     --conf spark.ui.port=24100 \
     --class ${CLASS} \
-    ${APP_JAR} ${TOPICS} ${ITERATIONS} ${OUTPUT_DIR}
+    ${APP_JAR} ${TOPICS} ${ITERATIONS} ${OUTPUT_DIR} ${STOPWORDS}
 fi
