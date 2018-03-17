@@ -3,7 +3,7 @@ package edu.gatech.cse8803
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.ml.feature.{CountVectorizer, CountVectorizerModel, RegexTokenizer, StopWordsRemover}
 import org.apache.spark.ml.linalg.{Vector => MLVector}
-import org.apache.spark.mllib.clustering.{LDA, LDAModel, OnlineLDAOptimizer}
+import org.apache.spark.mllib.clustering.{DistributedLDAModel, LDA}
 import org.apache.spark.mllib.linalg
 import org.apache.spark.mllib.linalg.Vectors
 import org.apache.spark.rdd.RDD
@@ -26,6 +26,8 @@ object LdaProcessing {
   val TOKENIZED_FIELD = "words"
   val FILTERED_FIELD = "filtered"
   val FEATURES_FIELD = "features"
+  // model save/load
+  val MODEL_LOCATION = "/user/af55267/project/lda_model"
 
   def main(args: Array[String]): Unit = {
     val ldaConf: LdaConf = new ProcessArguments().exec(args)
@@ -63,11 +65,16 @@ object LdaProcessing {
       val corpusSize = countVectors.count()
       2.0 / ldaConf.maxIterations + 1.0 / corpusSize
     }
-    val lda: LDA = new LDA().setOptimizer(new OnlineLDAOptimizer().setMiniBatchFraction(math.min(1.0, mbf))).
-      setK(ldaConf.numTopics).setMaxIterations(ldaConf.maxIterations).setDocConcentration(-1).setTopicConcentration(-1)
+    // this only gets local, we need distributed
+    //    val lda: LDA = new LDA().setOptimizer(new OnlineLDAOptimizer().setMiniBatchFraction(math.min(1.0, mbf))).
+    //      setK(ldaConf.numTopics).setMaxIterations(ldaConf.maxIterations).setDocConcentration(-1)
+    // .setTopicConcentration(-1)
+
+    val lda: LDA = new LDA().setK(ldaConf.numTopics).setMaxIterations(ldaConf.maxIterations).setDocConcentration(-1).
+      setTopicConcentration(-1)
 
     val startTime: Long = System.currentTimeMillis()
-    val ldaModel: LDAModel = lda.run(countVectors)
+    val ldaModel: DistributedLDAModel = lda.run(countVectors).asInstanceOf[DistributedLDAModel]
     val elapsed: Long = (System.currentTimeMillis() - startTime) / 1000
 
     // Print training time
@@ -75,9 +82,10 @@ object LdaProcessing {
     println(s"Training time (sec)\t$elapsed")
     println("=" * 80)
 
-    // Print the topics, showing the top-weighted terms for each topic.
-    val topicIndices: Array[(Array[Int], Array[Double])] = ldaModel.describeTopics(maxTermsPerTopic = maxTermsPerTopic)
     val vocabArray: Array[String] = cvModel.vocabulary
+
+    val topicIndices: Array[(Array[Int], Array[Double])] = ldaModel.describeTopics(maxTermsPerTopic)
+
     val topics: Array[Array[(String, Double)]] = topicIndices.map {
       case (terms, termWeights) => terms.map(vocabArray(_)).zip(termWeights)
     }
@@ -96,8 +104,12 @@ object LdaProcessing {
       topicString.append("=" * 80 + "\n")
     }
 
-    LOGGER.info("Saving topics to output:" + ldaConf.output)
+    LOGGER.info("Saving topics to output:" + ldaConf.outputTopics)
     val outRdd = sc.parallelize(Seq(topicString.toString())).repartition(1)
-    outRdd.saveAsTextFile(ldaConf.output)
+    outRdd.saveAsTextFile(ldaConf.outputTopics)
+    // topic assignment by doc
+    val topDocPerTopic = ldaModel.topDocumentsPerTopic(1)
+    LOGGER.info(">>Saving top topics for each document")
+    ldaModel.topTopicsPerDocument(ldaConf.numTopics).repartition(1).saveAsTextFile(ldaConf.outputTopTopicsPerDoc)
   }
 }

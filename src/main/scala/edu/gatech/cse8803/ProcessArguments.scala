@@ -16,7 +16,11 @@ class ProcessArguments {
     val numTopics: Int = args(0).toInt
     val maxIterations: Int = args(1).toInt
     val output: String = args(2)
+    // from outputput create other sub dirs
+    val outputTopic = output + "/topics"
+    val outputTopTopicsPerDoc = output + "/topTopicsPerDoc"
+    val outputTopDocsPerTopic = output + "/topDocsPerTopic"
     val stopwords: String = args(3)
-    LdaConf(numTopics, maxIterations, output, stopwords)
+    LdaConf(numTopics, maxIterations, outputTopic,outputTopTopicsPerDoc,outputTopDocsPerTopic, stopwords)
   }
 }
