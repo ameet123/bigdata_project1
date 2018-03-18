@@ -61,10 +61,11 @@ object LdaProcessing {
         case Row(docId: String, feature: MLVector) => (docId.toLong, Vectors.fromML(feature))
       }.cache()
 
-    val mbf: Double = {
-      val corpusSize = countVectors.count()
-      2.0 / ldaConf.maxIterations + 1.0 / corpusSize
-    }
+    // this is only for EM
+//    val mbf: Double = {
+//      val corpusSize = countVectors.count()
+//      2.0 / ldaConf.maxIterations + 1.0 / corpusSize
+//    }
     // this only gets local, we need distributed
     //    val lda: LDA = new LDA().setOptimizer(new OnlineLDAOptimizer().setMiniBatchFraction(math.min(1.0, mbf))).
     //      setK(ldaConf.numTopics).setMaxIterations(ldaConf.maxIterations).setDocConcentration(-1)
@@ -108,7 +109,11 @@ object LdaProcessing {
     val outRdd = sc.parallelize(Seq(topicString.toString())).repartition(1)
     outRdd.saveAsTextFile(ldaConf.outputTopics)
     // topic assignment by doc
-    val topDocPerTopic = ldaModel.topDocumentsPerTopic(1)
+    val topDocPerTopic = sc.parallelize(ldaModel.topDocumentsPerTopic(1)).zipWithIndex().map {
+      case ((ids, weights), index) => index + ": " + ids.zip(weights).mkString(",")
+    }.repartition(1)
+    topDocPerTopic.saveAsTextFile(ldaConf.outputTopDocsPerTopic)
+
     LOGGER.info(">>Saving top topics for each document")
     ldaModel.topTopicsPerDocument(ldaConf.numTopics).repartition(1).saveAsTextFile(ldaConf.outputTopTopicsPerDoc)
   }
