@@ -3,7 +3,7 @@
 # For SSL DEBUG add -Djavax.net.debug=all to driver and executor java options.
 # Sample invocation
 #  bash runner.sh   -s yarn -t 3 -o /user/af55267/project/lda_out -i 10 \
-#                   -w /user/af55267/project/stopwords1 -k ameet.keytab -p AF55267@DEVAD.WELLPOINT.COM -d
+#                   -w /user/af55267/project/stopwords2 -k ameet.keytab -p AF55267@DEVAD.WELLPOINT.COM -d
 
 SPARK_SUBMIT=/usr/bin/spark2-submit
 APP_JAR=../target/scala-2.10/project_2.10-0.1.jar
@@ -112,8 +112,8 @@ else
     --principal ${PRINCIPAL} \
     --conf "spark.driver.port=39200" \
     --executor-cores 4 \
-    --num-executors 2 \
-    --driver-memory 1g --executor-memory 1g \
+    --num-executors 100 \
+    --driver-memory 4g --executor-memory 6g \
     --driver-java-options "${VM_OPTIONS}" \
     --conf "spark.executor.extraJavaOptions=${VM_OPTIONS}" \
     --conf spark.network.timeout=10000000 \
