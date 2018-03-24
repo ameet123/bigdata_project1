@@ -15,7 +15,7 @@ object LdaProcessing {
   Logger.getLogger("akka").setLevel(Level.ERROR)
   @transient lazy val LOGGER: Logger = Logger.getLogger("LdaProcessing")
 
-  val vocabSize: Int = 10000
+  val vocabSize: Int = 200000
   val maxTermsPerTopic = 10
   val minWordLen = 5
   val notes_path = "/user/af55267/project/notes/consolidated_notes.csv"
@@ -115,7 +115,9 @@ object LdaProcessing {
     topDocPerTopic.saveAsTextFile(ldaConf.outputTopDocsPerTopic)
 
     LOGGER.info(">>Saving top topics for each document")
-    ldaModel.topTopicsPerDocument(ldaConf.numTopics).map {
+    val topNumTopics = if (ldaConf.numTopics < 5) ldaConf.numTopics else 5
+
+    ldaModel.topTopicsPerDocument(topNumTopics).map {
       case (docId, topicList, weights) =>
         docId + ": { " + topicList.map(a => "TOPIC-" + a).zip(weights).mkString(",") + " }"
     }.repartition(1).saveAsTextFile(ldaConf.outputTopTopicsPerDoc)

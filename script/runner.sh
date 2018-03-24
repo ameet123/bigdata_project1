@@ -113,7 +113,7 @@ else
     --conf "spark.driver.port=39200" \
     --executor-cores 4 \
     --num-executors 100 \
-    --driver-memory 4g --executor-memory 6g \
+    --driver-memory 4g --executor-memory 4g \
     --driver-java-options "${VM_OPTIONS}" \
     --conf "spark.executor.extraJavaOptions=${VM_OPTIONS}" \
     --conf spark.network.timeout=10000000 \
