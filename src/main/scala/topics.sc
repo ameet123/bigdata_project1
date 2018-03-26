@@ -1,5 +1,4 @@
 import org.apache.log4j.{Level, Logger}
-import org.apache.spark.ml.linalg.{Vector => MLVector}
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.{SparkConf, SparkContext}
 
@@ -17,6 +16,5 @@ def processTopicsFile(path: String, spark: SparkSession, out: String): Unit = {
   val subjectTopicRDD = topicsPerDoc.rdd.map(
     r => r.getString(0) + "," + r.getString(1).replaceAll("[\\{\\}\\)\\(]", "").split(",")(0)
   )
-  subjectTopicRDD.take(4).foreach(println)
   subjectTopicRDD.saveAsTextFile(out)
 }
