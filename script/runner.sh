@@ -7,13 +7,12 @@
 
 SPARK_SUBMIT=/usr/bin/spark2-submit
 APP_JAR=../target/scala-2.10/project_2.10-0.1.jar
-VM_OPTIONS="-Dlog4j.properties=./log4j.properties"
+VM_OPTIONS="-Dlog4j.configuration=file://`pwd`/log4j.properties"
 LDA_CLASS="edu.gatech.cse8803.LdaProcessing"
 KMEANS_CLASS="edu.gatech.cse8803.TopicKmeans"
 
 usage(){
-  echo -e "Usage: $0 \n\t-s <mode:local/yarn>\n\t-t <numTopics>\n\t-i <maxIterations>\n\t-k <keytab>\n\t-p
-  <principal>\n\t-o <output HDFS dir>\n\t-w <stopwords>"
+  echo -e "Usage: $0 \n\t-s <mode:local/yarn>\n\t-t <numTopics>\n\t-i <maxIterations>\n\t-k <keytab>\n\t-p <principal>\n\t-o <output HDFS dir>\n\t-w <stopwords>"
   exit 2
 }
 null_check(){

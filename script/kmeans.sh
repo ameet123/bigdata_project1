@@ -2,7 +2,7 @@
 
 SPARK_SUBMIT=/usr/bin/spark2-submit
 APP_JAR=../target/scala-2.10/project_2.10-0.1.jar
-VM_OPTIONS="-Dlog4j.properties=./log4j.properties"
+VM_OPTIONS="-Dlog4j.configuration=file://`pwd`/log4j.properties"
 KMEANS_CLASS="edu.gatech.cse8803.TopicKmeans"
 
 usage(){
@@ -26,11 +26,11 @@ keytab_check(){
   fi
 }
 
-if [ "$#" -lt 6 ]
+if [ "$#" -lt 4 ]
 then
   usage
 fi
-while getopts ":s:t:i:o:k:p:w:d" x; do
+while getopts ":s:t:k:p:m:" x; do
     case "${x}" in
         s)
             SPARK_SVR=${OPTARG}
