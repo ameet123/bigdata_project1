@@ -18,3 +18,24 @@ def processTopicsFile(path: String, spark: SparkSession, out: String): Unit = {
   )
   subjectTopicRDD.saveAsTextFile(out)
 }
+
+def flattenTopicsFile(in: String, spark: SparkSession, out: String): Unit = {
+  val topicsPerDoc = spark.read.format("csv").option("delimiter", ":").option("header", "false").load(in)
+  import java.util.regex.Pattern
+  def getToken(str: String, subject: String): List[(String, String, Double)] = {
+    var topicList: List[(String, String, Double)] = List()
+    val topicPattern = Pattern.compile("\\((.*?)\\)")
+    val matchPattern = topicPattern.matcher(str)
+    while (matchPattern.find) {
+      val kvArray = matchPattern.group(1).split(",")
+      topicList = topicList :+ (subject, kvArray(0), kvArray(1).toDouble)
+    }
+    topicList
+  }
+
+  val subjectTopicRDD = topicsPerDoc.rdd.map {
+    r => getToken(r.getString(1).replaceAll("[\\{\\}]", ""), r.getString(0))
+  }.flatMap(a => a)
+  import spark.implicits._
+  subjectTopicRDD.repartition(1).toDF().write.option("header", "false").csv(out)
+}

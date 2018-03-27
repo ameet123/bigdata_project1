@@ -10,18 +10,9 @@ import org.apache.spark.sql.SparkSession
 import org.apache.spark.{SparkConf, SparkContext}
 
 /**
-  * based on the topics, generate k-means based cluster to detect mortality.
-  * input: subject,topic csv file
-  * approach:
-  * 1. first create FeatureTuple ->  ((patient-id, topic-name), feature-value)
-  * initially, we will just consider the top topic, as such the value will be simply a 1.
-  * 2. based on the subject-topic RDD, genreate FeatureTuple RDD
-  * 3. label each of the above subjects with a mortality label of 0(alive) or 1(dead)
-  * 4. run kmeans on RDD feature tuple.
-  * 5. join it with real labels
-  * 6. calculate purity
+  * This will process a file where each subject has multiple topics with a Double weight attached to it.
   */
-object TopicKmeans {
+object MultiTopicKmeans {
 
   def main(args: Array[String]): Unit = {
     val subjectTopicMapFile: String = args(0)
@@ -29,7 +20,7 @@ object TopicKmeans {
     val conf: SparkConf = new SparkConf().setAppName("bigdata_proj").set("spark.ui.port", "34050")
     val sc = new SparkContext(conf)
     val spark: SparkSession = SparkSession.builder().config(conf).getOrCreate()
-    println(s">>Kmeans: topic-file:$subjectTopicMapFile mortality:$subjectMortalityFile")
+    println(s">>MultiTopic Kmeans: topic-file:$subjectTopicMapFile mortality:$subjectMortalityFile")
     exec(spark, subjectTopicMapFile, subjectMortalityFile)
   }
 
@@ -38,20 +29,20 @@ object TopicKmeans {
     * @param subjectTopicMapFile to subject->topic file
     */
   def exec(spark: SparkSession, subjectTopicMapFile: String, subjectMortalityFile: String): Unit = {
-    val topicMapRDD: RDD[(String, String)] = spark.read.format("csv").option("header", "false").
-      load(subjectTopicMapFile).rdd.map(r => (r.getString(0), r.getString(1)))
+    val topicMapRDD: RDD[(String, String, Double)] = spark.read.format("csv").option("header", "false").
+      load(subjectTopicMapFile).rdd.map(r => (r.getString(0), r.getString(1), r.getString(2).toDouble))
 
     val subjectMortalityRDD: RDD[(String, Int)] = spark.read.format("csv").option("header", "false").
       load(subjectMortalityFile).rdd.map(r => (r.getString(0), r.getString(1).toInt))
 
     // get feature tuple
-    val topicFeature: RDD[((String, String), Double)] = FeatureConstruction.constructTopicFeatureTuple(topicMapRDD)
+    val topicFeature: RDD[((String, String), Double)] = FeatureConstruction.constructMultiTopicFeatureTuple(topicMapRDD)
     val rawFeatures: RDD[(String, linalg.Vector)] = FeatureConstruction.construct(spark.sparkContext, topicFeature)
 
     // invoke k-means
-    println(">>Kmeans: Running kmeans on features...")
+    println(">>MultiTopic Kmeans: Running kmeans on features...")
     val purity: Double = kmeans(rawFeatures, 2, subjectMortalityRDD)
-    println(s"K-means purity=>$purity")
+    println(s"MultiTopic K-means purity=>$purity")
   }
 
   def kmeans(rawFeatures: RDD[(String, Vector)], numClusters: Int, realLabels: RDD[(String, Int)]): Double = {

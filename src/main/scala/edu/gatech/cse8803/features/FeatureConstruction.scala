@@ -18,6 +18,12 @@ object FeatureConstruction {
     }.reduceByKey((v1, v2) => v1 + v2).map(m => (m._1, m._2.toDouble))
   }
 
+  def constructMultiTopicFeatureTuple(subjectRdd: RDD[(String, String, Double)]): RDD[FeatureTuple] = {
+    subjectRdd.map {
+      case (subject_id, topic, weight) => ((subject_id, topic), weight)
+    }
+  }
+
   /**
     * Given a feature tuples RDD, construct features in vector
     * format for each patient. feature name should be mapped

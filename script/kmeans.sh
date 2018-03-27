@@ -4,9 +4,10 @@ SPARK_SUBMIT=/usr/bin/spark2-submit
 APP_JAR=../target/scala-2.10/project_2.10-0.1.jar
 VM_OPTIONS="-Dlog4j.configuration=file://`pwd`/log4j.properties"
 KMEANS_CLASS="edu.gatech.cse8803.TopicKmeans"
+MULTI_KMEANS_CLASS="edu.gatech.cse8803.MultiTopicKmeans"
 
 usage(){
-  echo -e "Usage: $0 \n\t-s <mode:local/yarn>\n\t-t <subject-topic file>\n\t-m <subject-mortality file>\n\t-k <keytab>\n\t-p <principal>\n"
+  echo -e "Usage: $0 \n\t-s <mode:local/yarn>\n\t-x\t\tRun Multi-topic class\n\t-t <subject-topic file>\n\t-m <subject-mortality file>\n\t-k <keytab>\n\t-p <principal>\n"
   exit 2
 }
 null_check(){
@@ -30,7 +31,7 @@ if [ "$#" -lt 4 ]
 then
   usage
 fi
-while getopts ":s:t:k:p:m:" x; do
+while getopts ":s:t:k:p:m:x" x; do
     case "${x}" in
         s)
             SPARK_SVR=${OPTARG}
@@ -52,6 +53,9 @@ while getopts ":s:t:k:p:m:" x; do
             PRINCIPAL=${OPTARG}
             null_check PRINCIPAL
             ;;
+        x)
+            MULTI_TOPIC="Y"
+            ;;
         *)
             usage
             ;;
@@ -59,7 +63,14 @@ while getopts ":s:t:k:p:m:" x; do
 done
 shift $((OPTIND-1))
 
-echo -e "Running LDA :\n{\n\tMode=${SPARK_SVR}\n\tPrincipal=${PRINCIPAL}\n\tKeytab=$KEYTAB\n\tTopicFile=${TOPIC_MAP_FILE}\n\tMortality file=${MORT_FILE}\n}"
+if [ "$MULTI_TOPIC" == "Y" ]
+then
+    MY_CLASS=$MULTI_KMEANS_CLASS
+else
+    MY_CLASS=$KMEANS_CLASS
+fi
+
+echo -e "Running LDA :\n{\n\tMode=${SPARK_SVR}\n\tCLASS=$MY_CLASS\n\tTopicFile=${TOPIC_MAP_FILE}\n\tMortality file=${MORT_FILE}\n}"
 
 if [ "${SPARK_SVR}" == "local" ]
 then
@@ -77,7 +88,7 @@ then
     --conf "spark.executor.extraJavaOptions=${VM_OPTIONS}" \
     --conf spark.network.timeout=10000000 \
     --conf spark.ui.port=24100 \
-    --class ${KMEANS_CLASS} \
+    --class ${MY_CLASS} \
     ${APP_JAR} ${TOPIC_MAP_FILE} ${MORT_FILE}
 else
     echo ">> Kmeans:Running in Yarn Mode..."
@@ -95,6 +106,6 @@ else
     --conf "spark.executor.extraJavaOptions=${VM_OPTIONS}" \
     --conf spark.network.timeout=10000000 \
     --conf spark.ui.port=24100 \
-    --class ${KMEANS_CLASS} \
+    --class ${MY_CLASS} \
     ${APP_JAR} ${TOPIC_MAP_FILE} ${MORT_FILE}
 fi
