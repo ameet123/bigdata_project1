@@ -68,7 +68,7 @@ object MultiTopicKmeans {
     val seed = 8803L
     import org.apache.spark.mllib.clustering.KMeans
     val clusters = KMeans.train(featureVectors, numClusters, numIterations)
-
+    clusters.save(rawFeatures.sparkContext, "project/kmeans/model")
     // predict
     val predicted: RDD[(String, Int)] = rawFeatures.map(m =>
       (m._1, clusters.predict(transform(m._2)))
