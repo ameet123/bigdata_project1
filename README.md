@@ -4,44 +4,10 @@
 
 #### Flow
 ![flow-1](documents/image/flow-1.jpg)
+
+<br>
+
 ![flow-2](documents/image/flow-2.jpg)
-
-```mermaid
-graph TD
-A(fa:fa-upload upload to Postgres)
-B(fa:fa-download extract as single line)
-C(fa:fa-cloud-upload distribute to HDFS)
-D(fa:fa-wordpress LDA topic model)
-E(fa:fa-link patient->topic Map)
-F(fa:fa-shopping-basket K-means)
-G(fa:fa-tags Label Preparation)
-H(fa:fa-stethoscope Test Purity)
-
-subgraph db
-A-->B
-B-->C
-end
-C-->D
-subgraph LDA
-D-->E
-end
-subgraph Clustering
-E-->F
-F-->G
-G-->H
-end
-
-style E fill:#b3ffff,stroke:#00b3b3,stroke-width:4px
-style D fill:#b3ffff,stroke:#00b3b3,stroke-width:4px
-
-style F fill:#ffa366,stroke:#ff3300,stroke-width:4px
-style G fill:#ffa366,stroke:#ff3300,stroke-width:4px
-style H fill:#ffa366,stroke:#ff3300,stroke-width:4px
-
-style A stroke-width:4px;
-style B stroke-width:4px;
-style C stroke-width:4px;
-```
 
 #### 1. Database Preparation
 
