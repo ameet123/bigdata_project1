@@ -3,6 +3,8 @@
 
 
 #### Flow
+![flow-1](documents/image/flow-1.jpg)
+![flow-2](documents/image/flow-2.jpg)
 
 ```mermaid
 graph TD
@@ -90,7 +92,7 @@ sbt clean compile package
 
 This generates the jar `target/scala-2.10/project_2.10-0.1.jar` which is used by the `runner.sh`
 
-#####Run Spark job
+##### Run Spark job
 
 LDA is run using `Spark` . A shell script is provided which performs the task of submitting the spark job to the Yarn cluster. It can be invoked as follows,
 
